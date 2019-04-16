@@ -1,4 +1,7 @@
 # -*- coding:utf-8 -*-
+
+from mnist import dense_to_one_hot
+
 import tensorflow as tf
 import numpy as np
 import pandas as pd
@@ -7,30 +10,23 @@ import pandas as pd
 train = pd.read_csv('./dataset/train.csv')
 #print(train)
 images_train = train.iloc[:, 1:].values.astype(np.float) #所有行 从第2列到最后 第一列为标签
-labels_train = train.iloc[:, 0].values
 
 test = pd.read_csv('./dataset/test.csv')
 images_test = test.iloc[:, :].values.astype(np.float)
 
-#2 对输入数据进行处理
+#2 对输入数据进行处理，将其控制在0-1之间
 images_train = np.multiply(images_train, 1.0 / 255)
 iamges_test = np.multiply(images_test, 1.0 / 255)
 
-image_size = images_train.shape[1]
+#计算图片宽高
+image_size = images_train.shape[1]  #列数
 images_width = images_height = np.ceil(np.sqrt(image_size)).astype(np.uint8)
 
-#3 处理结果
+#3 处理标签，将标签结果取出来
+labels_train = train.iloc[:, 0].values #标签
 labels_count = np.unique(labels_train).shape[0]  #即一共有几种label，几分类问题
 
-#one-hot编码,将label变为二维数组，当前标签数字置1
-def dense_to_one_hot(labels_dense, num_classes):
-    num_labels = labels_dense.shape[0]
-    index_offset = np.arange(num_labels) * num_classes #取每num_classes个的第一个下标
-    labels_one_hot = np.zeros((num_labels, num_classes))
-    #flatten和ravel都是平铺，区别是一个返回的是视图（改变元素值影响原数组），一个是拷贝（不影响）
-    labels_one_hot.flat[index_offset + labels_dense.ravel()] = 1 #flat 返回的是一个迭代器，可用索引对其引导，作用是把一个array看做平铺
-    return labels_one_hot
-
+#对标签进行one-hot处理
 labels = dense_to_one_hot(labels_train, labels_count).astype(np.uint8)
 
 #4 对训练集进行划分
@@ -45,11 +41,12 @@ y = tf.placeholder('float', shape=[None, labels_count])
 
 
 with tf.name_scope('input_reshape'):
-    image_shape_input = tf.reshape(x, [-1, 28, 28, 1])
-    tf.summary.image('input', image_shape_input, batch_size)
+    x_image = tf.reshape(x, [-1, 28, 28, 1])
+    tf.summary.image('input', x_image, batch_size)
 
 
 def weight_variable(shape):#初始化权重
+    #正态分布,标准差为0.1
     initial = tf.truncated_normal(shape, stddev=0.01)
     return tf.Variable(initial)
 
